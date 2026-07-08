@@ -1,20 +1,23 @@
 # FFmpeg Encoder Plugin for DaVinci Resolve Studio
 
 This plugin enables you to export H.264, H.265 and AV1 video from DaVinci Resolve Studio using FFmpeg encoders.
-The plugin supports both CPU encoding and GPU encoding on Linux using VAAPI.
+The plugin supports both CPU encoding and GPU encoding on Linux using VAAPI, Vulkan and NVENC where available.
 
 ### Supported encoders
 - H.264
   - X264
   - VAAPI
+  - Vulkan
   - NVENC
 - H.265
   - X265
   - VAAPI
+  - Vulkan
   - NVENC
 - AV1
   - SVT-AV1
   - VAAPI
+  - Vulkan
   - NVENC
 
 ## Installation

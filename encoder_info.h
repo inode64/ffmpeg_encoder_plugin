@@ -11,7 +11,7 @@ extern "C" {
 
 namespace IOPlugin {
 
-enum HardwareAcceleration { None, Vaapi, Nvenc };
+enum HardwareAcceleration { None, Vaapi, Nvenc, Vulkan };
 
 struct EncoderFormat {
     const char* codecName{};

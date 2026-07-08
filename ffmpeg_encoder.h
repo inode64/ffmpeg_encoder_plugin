@@ -42,6 +42,7 @@ class FFmpegEncoder : public IPluginCodecRef {
     AVPixelFormat pixelFormat{};
     AVPixelFormat srcPixelFormat{};
     bool useVaapi{};
+    bool useVulkan{};
     PixelFormatRepacker* pixelFormatConverter{};
 
     AVCodecContext* ctx{};

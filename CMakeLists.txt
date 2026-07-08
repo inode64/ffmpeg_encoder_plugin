@@ -26,11 +26,14 @@ include_directories(include wrapper ${FFMPEG_INCLUDE_DIR})
 set(SRCS
         av1_encoder.cpp
         av1_nvenc_encoder.cpp
+        av1_vulkan_encoder.cpp
         ffmpeg_encoder.cpp
         h264_encoder.cpp
         h264_nvenc_encoder.cpp
+        h264_vulkan_encoder.cpp
         h265_encoder.cpp
         h265_nvenc_encoder.cpp
+        h265_vulkan_encoder.cpp
         pixel_format_repacker.cpp
         plugin.cpp
         svt_av1_encoder.cpp
@@ -42,11 +45,14 @@ set(SRCS
 set(HEADERS
         av1_encoder.h
         av1_nvenc_encoder.h
+        av1_vulkan_encoder.h
         ffmpeg_encoder.h
         h264_encoder.h
         h264_nvenc_encoder.h
+        h264_vulkan_encoder.h
         h265_encoder.h
         h265_nvenc_encoder.h
+        h265_vulkan_encoder.h
         pixel_format_repacker.h
         plugin.h
         svt_av1_encoder.h
