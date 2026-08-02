@@ -5,10 +5,6 @@
 
 #include "pixel_format_repacker.h"
 
-extern "C" {
-#include <libavutil/avutil.h>
-}
-
 namespace IOPlugin {
 
 enum HardwareAcceleration { None, Vaapi, Nvenc };
@@ -36,6 +32,7 @@ struct EncoderInfo {
     int defaultPreset{};
     const char* customParamsKey{};
     std::vector<EncoderFormat> formats{};
+    bool isVaapiRadeonSi{};
 };
 
 }

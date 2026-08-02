@@ -6,7 +6,7 @@ namespace IOPlugin {
 
 class H264Encoder final : public FFmpegEncoder {
    public:
-    static const EncoderInfo encoderInfo;
+    static EncoderInfo encoderInfo;
 
     explicit H264Encoder(int formatIndex);
 

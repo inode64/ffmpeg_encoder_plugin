@@ -1,6 +1,8 @@
 #include "av1_encoder.h"
 
-const EncoderInfo Av1Encoder::encoderInfo = {
+#include "hw_encoder_capabilities.h"
+
+EncoderInfo Av1Encoder::encoderInfo = {
     .UUID{0x95, 0x43, 0x6f, 0x52, 0xfb, 0xab, 0x11, 0x60, 0x04, 0x51, 0xf8, 0x5b, 0x83, 0xa4, 0x76, 0x4d},
     .codecGroup = "AV1",
     .fourCC = 'av01',
@@ -8,8 +10,8 @@ const EncoderInfo Av1Encoder::encoderInfo = {
     .hwAcceleration = Vaapi,
     .qualityModes = CQP | VBR,
     .qp = {1, 25, 63},
-    .presets = {{0, "Speed"}, {1, "Balanced"}, {2, "Quality"}},
-    .defaultPreset = 1,
+    .presets = {{FF_COMPRESSION_DEFAULT, "Default"}},
+    .defaultPreset = FF_COMPRESSION_DEFAULT,
     .formats =
         {
             {
@@ -36,7 +38,10 @@ Av1Encoder::Av1Encoder(const int formatIndex) {
     FFmpegEncoder::formatIndex = formatIndex;
 }
 
-StatusCode Av1Encoder::RegisterCodecs(HostListRef* list) { return FFmpegEncoder::RegisterCodecs(list, encoderInfo); }
+StatusCode Av1Encoder::RegisterCodecs(HostListRef* list) {
+    InitializeVaapiPresets(encoderInfo);
+    return FFmpegEncoder::RegisterCodecs(list, encoderInfo);
+}
 
 StatusCode Av1Encoder::GetEncoderSettings(HostPropertyCollectionRef* values, HostListRef* settingsList) {
     return FFmpegEncoder::GetEncoderSettings(values, settingsList, encoderInfo);

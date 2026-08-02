@@ -6,7 +6,7 @@ namespace IOPlugin {
 
 class Av1Encoder final : public FFmpegEncoder {
    public:
-    static const EncoderInfo encoderInfo;
+    static EncoderInfo encoderInfo;
 
     explicit Av1Encoder(int formatIndex);
 

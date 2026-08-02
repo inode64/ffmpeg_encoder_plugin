@@ -1,12 +1,14 @@
 #include "ffmpeg_encoder.h"
 
+#include "hw_encoder_capabilities.h"
+
 extern "C" {
 #include <libavutil/log.h>
 #include <libavutil/opt.h>
 }
 
 #undef av_err2str
-av_always_inline std::string av_err2string(int errnum) {
+av_always_inline static std::string av_err2string(int errnum) {
     char str[AV_ERROR_MAX_STRING_SIZE];
     return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
 }
@@ -271,10 +273,14 @@ StatusCode FFmpegEncoder::ApplyOptions(AVCodecContext* ctx, UISettingsController
             break;
     }
 
-    if (useVaapi) {
-        constexpr int preEncode = 1 << 3;
-        constexpr int VBAQ = 1 << 4;
-        ctx->compression_level = settings.GetPreset() << 1 | preEncode | VBAQ | 1;
+    if (encoderInfo.hwAcceleration == Vaapi) {
+        if (encoderInfo.isVaapiRadeonSi) {
+            constexpr int preEncode = 1 << 3;
+            constexpr int VBAQ = 1 << 4;
+            ctx->compression_level = settings.GetPreset() << 1 | preEncode | VBAQ | 1;
+        } else {
+            ctx->compression_level = settings.GetPreset();
+        }
     } else {
         if (const auto preset = encoderInfo.presets.find(settings.GetPreset()); preset != encoderInfo.presets.end()) {
             av_opt_set(ctx->priv_data, "preset", preset->second.c_str(), 0);

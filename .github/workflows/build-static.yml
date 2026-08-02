@@ -179,7 +179,7 @@ jobs:
           elif [ "${{ matrix.target }}" = "windows" ]; then
             EXTRA_ARGS="--enable-nvenc --target-os=mingw32 --cross-prefix=$HOST-"
           elif [[ "${{ matrix.target }}" == macos* ]]; then
-            EXTRA_ARGS='--cc=clang --cxx=clang++ --ld=clang++ --disable-videotoolbox --disable-avfoundation --disable-coreimage'
+            EXTRA_ARGS='--cc=clang --cxx=clang++ --ld=clang++ --disable-videotoolbox --disable-avfoundation --disable-coreimage --disable-xlib'
             export CFLAGS="-arch $ARCH"
             export CXXFLAGS="-arch $ARCH"
             export LDFLAGS="-arch $ARCH"

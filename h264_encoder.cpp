@@ -1,6 +1,8 @@
 #include "h264_encoder.h"
 
-const EncoderInfo H264Encoder::encoderInfo = {
+#include "hw_encoder_capabilities.h"
+
+EncoderInfo H264Encoder::encoderInfo = {
     .UUID{0xaa, 0xeb, 0x0f, 0x28, 0x4c, 0x6f, 0x4e, 0x3f, 0x95, 0xdd, 0x23, 0x43, 0x41, 0xf3, 0x8d, 0xa0},
     .codecGroup = "H.264",
     .fourCC = 'avc1',
@@ -8,8 +10,8 @@ const EncoderInfo H264Encoder::encoderInfo = {
     .hwAcceleration = Vaapi,
     .qualityModes = CQP | VBR,
     .qp = {1, 20, 51},
-    .presets = {{0, "Speed"}, {1, "Balanced"}, {2, "Quality"}},
-    .defaultPreset = 1,
+    .presets = {{FF_COMPRESSION_DEFAULT, "Default"}},
+    .defaultPreset = FF_COMPRESSION_DEFAULT,
     .formats =
         {
             {
@@ -36,7 +38,10 @@ H264Encoder::H264Encoder(const int formatIndex) {
     FFmpegEncoder::formatIndex = formatIndex;
 }
 
-StatusCode H264Encoder::RegisterCodecs(HostListRef* list) { return FFmpegEncoder::RegisterCodecs(list, encoderInfo); }
+StatusCode H264Encoder::RegisterCodecs(HostListRef* list) {
+    InitializeVaapiPresets(encoderInfo);
+    return FFmpegEncoder::RegisterCodecs(list, encoderInfo);
+}
 
 StatusCode H264Encoder::GetEncoderSettings(HostPropertyCollectionRef* values, HostListRef* settingsList) {
     return FFmpegEncoder::GetEncoderSettings(values, settingsList, encoderInfo);

@@ -11,14 +11,39 @@ set(WRAPPER_DIR "${BASE_DIR}/wrapper")
 find_path(FFMPEG_INCLUDE_DIR libavcodec/avcodec.h HINTS "${FFMPEG_DIR}/include")
 find_library(AVCODEC_LIBRARY avcodec HINTS "${FFMPEG_DIR}/lib")
 find_library(AVUTIL_LIBRARY avutil HINTS "${FFMPEG_DIR}/lib")
+find_library(VA_LIBRARY va)
 
 get_filename_component(AVCODEC_EXT "${AVCODEC_LIBRARY}" EXT)
 if (AVCODEC_EXT STREQUAL ".a")
     set(FFMPEG_IS_STATIC TRUE)
+endif ()
 
-    find_library(X264_LIBRARY x264 HINTS "${FFMPEG_DIR}/lib")
-    find_library(X265_LIBRARY x265 HINTS "${FFMPEG_DIR}/lib")
-    find_library(SVTAV1_LIBRARY SvtAv1Enc HINTS "${FFMPEG_DIR}/lib")
+if (FFMPEG_IS_STATIC)
+    find_package(PkgConfig REQUIRED)
+
+    set(PKG_CONFIG_USE_STATIC_LIBS ON)
+
+    set(ENV{PKG_CONFIG_PATH}
+            "${FFMPEG_DIR}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+
+    pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)
+
+    find_library(X264_LIBRARY x264 HINTS "${FFMPEG_DIR}/lib" REQUIRED)
+    find_library(X265_LIBRARY x265 HINTS "${FFMPEG_DIR}/lib" REQUIRED)
+    find_library(SVTAV1_LIBRARY SvtAv1Enc HINTS "${FFMPEG_DIR}/lib" REQUIRED)
+
+    set(FFMPEG_SYSTEM_LIBS ${AVCODEC_STATIC_LIBRARIES})
+
+    list(REMOVE_ITEM FFMPEG_SYSTEM_LIBS
+            avcodec
+            avutil
+            x264
+            x265
+            SvtAv1Enc
+            stdc++
+            gcc_s
+            gcc
+    )
 endif ()
 
 include_directories(include wrapper ${FFMPEG_INCLUDE_DIR})
@@ -31,6 +56,7 @@ set(SRCS
         h264_nvenc_encoder.cpp
         h265_encoder.cpp
         h265_nvenc_encoder.cpp
+        hw_encoder_capabilities.cpp
         pixel_format_repacker.cpp
         plugin.cpp
         svt_av1_encoder.cpp
@@ -47,6 +73,7 @@ set(HEADERS
         h264_nvenc_encoder.h
         h265_encoder.h
         h265_nvenc_encoder.h
+        hw_encoder_capabilities.h
         pixel_format_repacker.h
         plugin.h
         svt_av1_encoder.h
@@ -76,13 +103,19 @@ endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE host_plugin ${AVCODEC_LIBRARY} ${AVUTIL_LIBRARY})
 
+if (VA_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_VA_LIBRARY=1)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${VA_LIBRARY})
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(WARNING "VA library not found. Some functionality of the VAAPI encoders will be limited.")
+endif ()
+
 if (FFMPEG_IS_STATIC)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${X264_LIBRARY} ${X265_LIBRARY} ${SVTAV1_LIBRARY})
-    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_libraries(${PROJECT_NAME} PRIVATE numa va va-drm va-x11 X11)
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        target_link_libraries(${PROJECT_NAME} PRIVATE bcrypt)
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        target_link_libraries(${PROJECT_NAME} PRIVATE iconv)
-    endif ()
+    target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            ${X264_LIBRARY}
+            ${X265_LIBRARY}
+            ${SVTAV1_LIBRARY}
+            ${FFMPEG_SYSTEM_LIBS}
+    )
 endif ()
