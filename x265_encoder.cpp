@@ -21,6 +21,16 @@ const EncoderInfo X265Encoder::encoderInfo = {
             {8, "veryslow"},
         },
     .defaultPreset = 5,
+    .tunes =
+        {
+            {-1, "None"},
+            {0, "psnr"},
+            {1, "ssim"},
+            {2, "grain"},
+            {3, "fastdecode"},
+            {4, "zerolatency"},
+            {5, "animation"},
+        },
     .customParamsKey = "x265-params",
     .formats =
         {

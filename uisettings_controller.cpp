@@ -25,6 +25,7 @@ void UISettingsController::Load(IPropertyProvider* values) {
     values->GetINT32(qpId.c_str(), qp);
     values->GetINT32(bitrateId.c_str(), bitRate);
     values->GetINT32(presetId.c_str(), preset);
+    values->GetINT32(tuneId.c_str(), tune);
 
     std::string customParamsStr;
     if (values->GetString(customParamsId.c_str(), customParamsStr)) {
@@ -58,12 +59,14 @@ void UISettingsController::InitDefaults() {
     qp = encoderInfo.qp[1];
     bitRate = 6000;
     preset = encoderInfo.defaultPreset;
+    tune = encoderInfo.defaultTune;
 
     const std::string prefix = std::string("ffmpeg_") + encoderInfo.encoder + "_";
     qualityModeId = prefix + "q_mode";
     qpId = prefix + "qp";
     bitrateId = prefix + "bitrate";
     presetId = prefix + "preset";
+    tuneId = prefix + "tune";
     customParamsId = prefix + "custom_params";
 }
 
@@ -93,6 +96,24 @@ StatusCode UISettingsController::RenderQuality(HostListRef* settingsList) const 
         item.MakeComboBox("Encoder Preset", textsVec, valuesVec, preset);
         if (!item.IsSuccess() || !settingsList->Append(&item)) {
             g_Log(logLevelError, "FFmpeg Plugin :: Failed to populate encoder preset UI entry");
+            return errFail;
+        }
+    }
+
+    if (!encoderInfo.tunes.empty()) {
+        HostUIConfigEntryRef item(tuneId);
+
+        std::vector<std::string> textsVec;
+        std::vector<int> valuesVec;
+
+        for (const auto& [key, value] : encoderInfo.tunes) {
+            valuesVec.push_back(key);
+            textsVec.emplace_back(value);
+        }
+
+        item.MakeComboBox("Encoder Tune", textsVec, valuesVec, tune);
+        if (!item.IsSuccess() || !settingsList->Append(&item)) {
+            g_Log(logLevelError, "FFmpeg Plugin :: Failed to populate encoder tune UI entry");
             return errFail;
         }
     }
@@ -187,5 +208,7 @@ int32_t UISettingsController::GetQP() const { return std::max<int>(0, qp); }
 int32_t UISettingsController::GetBitRate() const { return bitRate * 1000; }
 
 int32_t UISettingsController::GetPreset() const { return preset; }
+
+int32_t UISettingsController::GetTune() const { return tune; }
 
 const std::string& UISettingsController::GetCustomParams() const { return customParams; }

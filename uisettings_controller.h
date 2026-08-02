@@ -28,6 +28,7 @@ class UISettingsController final {
     int32_t GetQP() const;
     int32_t GetBitRate() const;
     int32_t GetPreset() const;
+    int32_t GetTune() const;
     const std::string& GetCustomParams() const;
 
    private:
@@ -38,12 +39,14 @@ class UISettingsController final {
     int32_t qp{};
     int32_t bitRate{};
     int32_t preset{};
+    int32_t tune{};
     std::string customParams;
 
     std::string qualityModeId;
     std::string qpId;
     std::string bitrateId;
     std::string presetId;
+    std::string tuneId;
     std::string customParamsId;
 };
 

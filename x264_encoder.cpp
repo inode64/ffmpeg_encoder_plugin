@@ -21,6 +21,18 @@ const EncoderInfo X264Encoder::encoderInfo = {
             {8, "veryslow"},
         },
     .defaultPreset = 5,
+    .tunes =
+        {
+            {-1, "None"},
+            {0, "film"},
+            {1, "animation"},
+            {2, "grain"},
+            {3, "stillimage"},
+            {4, "psnr"},
+            {5, "ssim"},
+            {6, "fastdecode"},
+            {7, "zerolatency"},
+        },
     .customParamsKey = "x264-params",
     .formats =
         {

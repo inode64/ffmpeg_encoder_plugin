@@ -285,6 +285,10 @@ StatusCode FFmpegEncoder::ApplyOptions(AVCodecContext* ctx, UISettingsController
         if (const auto preset = encoderInfo.presets.find(settings.GetPreset()); preset != encoderInfo.presets.end()) {
             av_opt_set(ctx->priv_data, "preset", preset->second.c_str(), 0);
         }
+        if (const auto tune = encoderInfo.tunes.find(settings.GetTune());
+            tune != encoderInfo.tunes.end() && tune->first >= 0) {
+            av_opt_set(ctx->priv_data, "tune", tune->second.c_str(), 0);
+        }
     }
 
     if (encoderInfo.customParamsKey != nullptr && !settings.GetCustomParams().empty()) {

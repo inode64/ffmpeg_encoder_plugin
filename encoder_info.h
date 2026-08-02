@@ -30,6 +30,8 @@ struct EncoderInfo {
     uint8_t qp[3]{};
     std::map<int, std::string> presets{};
     int defaultPreset{};
+    std::map<int, std::string> tunes{};
+    int defaultTune{-1};
     const char* customParamsKey{};
     std::vector<EncoderFormat> formats{};
     bool isVaapiRadeonSi{};
