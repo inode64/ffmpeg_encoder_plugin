@@ -2,13 +2,13 @@
 
 #include <cstring>
 
-#include "av1_encoder.h"
 #include "av1_nvenc_encoder.h"
+#include "av1_vaapi_encoder.h"
 #include "ffmpeg_encoder.h"
-#include "h264_encoder.h"
 #include "h264_nvenc_encoder.h"
-#include "h265_encoder.h"
+#include "h264_vaapi_encoder.h"
 #include "h265_nvenc_encoder.h"
+#include "h265_vaapi_encoder.h"
 #include "svt_av1_encoder.h"
 #include "uisettings_controller.h"
 #include "x264_encoder.h"
@@ -28,9 +28,9 @@ StatusCode g_HandleGetInfo(HostPropertyCollectionRef* p_pProps) {
 }
 
 StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
-    if (memcmp(p_pUUID, H264Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - H264Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new H264Encoder(formatIndex);
+    if (memcmp(p_pUUID, H264VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - H264VaapiEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new H264VaapiEncoder(formatIndex);
         return errNone;
     }
 
@@ -46,9 +46,9 @@ StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
         return errNone;
     }
 
-    if (memcmp(p_pUUID, H265Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - H265Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new H265Encoder(formatIndex);
+    if (memcmp(p_pUUID, H265VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - H265VaapiEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new H265VaapiEncoder(formatIndex);
         return errNone;
     }
 
@@ -64,9 +64,9 @@ StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
         return errNone;
     }
 
-    if (memcmp(p_pUUID, Av1Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - Av1Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new Av1Encoder(formatIndex);
+    if (memcmp(p_pUUID, Av1VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - Av1VaapiEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new Av1VaapiEncoder(formatIndex);
         return errNone;
     }
 
@@ -90,7 +90,7 @@ StatusCode g_HandlePluginStart() { return errNone; }
 StatusCode g_HandlePluginTerminate() { return errNone; }
 
 StatusCode g_ListCodecs(HostListRef* p_pList) {
-    StatusCode err = H264Encoder::RegisterCodecs(p_pList);
+    StatusCode err = H264VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     err = X264Encoder::RegisterCodecs(p_pList);
@@ -99,7 +99,7 @@ StatusCode g_ListCodecs(HostListRef* p_pList) {
     err = H264NvencEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = H265Encoder::RegisterCodecs(p_pList);
+    err = H265VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     err = X265Encoder::RegisterCodecs(p_pList);
@@ -108,7 +108,7 @@ StatusCode g_ListCodecs(HostListRef* p_pList) {
     err = H265NvencEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = Av1Encoder::RegisterCodecs(p_pList);
+    err = Av1VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     err = SvtAv1Encoder::RegisterCodecs(p_pList);
@@ -124,8 +124,8 @@ StatusCode g_ListContainers(HostListRef* p_pList) { return errNone; }
 
 StatusCode g_GetEncoderSettings(unsigned char* p_pUUID, HostPropertyCollectionRef* p_pValues,
                                 HostListRef* p_pSettingsList) {
-    if (memcmp(p_pUUID, H264Encoder::encoderInfo.UUID, 15) == 0) {
-        return H264Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    if (memcmp(p_pUUID, H264VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        return H264VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     if (memcmp(p_pUUID, X264Encoder::encoderInfo.UUID, 15) == 0) {
@@ -136,8 +136,8 @@ StatusCode g_GetEncoderSettings(unsigned char* p_pUUID, HostPropertyCollectionRe
         return H264NvencEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
-    if (memcmp(p_pUUID, H265Encoder::encoderInfo.UUID, 15) == 0) {
-        return H265Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    if (memcmp(p_pUUID, H265VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        return H265VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     if (memcmp(p_pUUID, X265Encoder::encoderInfo.UUID, 15) == 0) {
@@ -148,8 +148,8 @@ StatusCode g_GetEncoderSettings(unsigned char* p_pUUID, HostPropertyCollectionRe
         return H265NvencEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
-    if (memcmp(p_pUUID, Av1Encoder::encoderInfo.UUID, 15) == 0) {
-        return Av1Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    if (memcmp(p_pUUID, Av1VaapiEncoder::encoderInfo.UUID, 15) == 0) {
+        return Av1VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     if (memcmp(p_pUUID, SvtAv1Encoder::encoderInfo.UUID, 15) == 0) {

@@ -1,8 +1,8 @@
-#include "h265_encoder.h"
+#include "h265_vaapi_encoder.h"
 
 #include "hw_encoder_capabilities.h"
 
-EncoderInfo H265Encoder::encoderInfo = {
+EncoderInfo H265VaapiEncoder::encoderInfo = {
     .UUID{0x2b, 0xfa, 0xeb, 0xed, 0xaa, 0x3d, 0x45, 0xbf, 0xe2, 0x27, 0x32, 0x4a, 0x96, 0x7a, 0xb4, 0x66},
     .codecGroup = "H.265",
     .fourCC = 'hvc1',
@@ -33,16 +33,16 @@ EncoderInfo H265Encoder::encoderInfo = {
         },
 };
 
-H265Encoder::H265Encoder(const int formatIndex) {
+H265VaapiEncoder::H265VaapiEncoder(const int formatIndex) {
     FFmpegEncoder::encoderInfo = encoderInfo;
     FFmpegEncoder::formatIndex = formatIndex;
 }
 
-StatusCode H265Encoder::RegisterCodecs(HostListRef* list) {
+StatusCode H265VaapiEncoder::RegisterCodecs(HostListRef* list) {
     InitializeVaapiPresets(encoderInfo);
     return FFmpegEncoder::RegisterCodecs(list, encoderInfo);
 }
 
-StatusCode H265Encoder::GetEncoderSettings(HostPropertyCollectionRef* values, HostListRef* settingsList) {
+StatusCode H265VaapiEncoder::GetEncoderSettings(HostPropertyCollectionRef* values, HostListRef* settingsList) {
     return FFmpegEncoder::GetEncoderSettings(values, settingsList, encoderInfo);
 }

@@ -49,13 +49,13 @@ endif ()
 include_directories(include wrapper ${FFMPEG_INCLUDE_DIR})
 
 set(SRCS
-        av1_encoder.cpp
         av1_nvenc_encoder.cpp
+        av1_vaapi_encoder.cpp
         ffmpeg_encoder.cpp
-        h264_encoder.cpp
         h264_nvenc_encoder.cpp
-        h265_encoder.cpp
+        h264_vaapi_encoder.cpp
         h265_nvenc_encoder.cpp
+        h265_vaapi_encoder.cpp
         hw_encoder_capabilities.cpp
         pixel_format_repacker.cpp
         plugin.cpp
@@ -66,13 +66,13 @@ set(SRCS
 )
 
 set(HEADERS
-        av1_encoder.h
         av1_nvenc_encoder.h
+        av1_vaapi_encoder.h
         ffmpeg_encoder.h
-        h264_encoder.h
         h264_nvenc_encoder.h
-        h265_encoder.h
+        h264_vaapi_encoder.h
         h265_nvenc_encoder.h
+        h265_vaapi_encoder.h
         hw_encoder_capabilities.h
         pixel_format_repacker.h
         plugin.h

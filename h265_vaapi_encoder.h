@@ -4,11 +4,11 @@
 
 namespace IOPlugin {
 
-class Av1Encoder final : public FFmpegEncoder {
+class H265VaapiEncoder final : public FFmpegEncoder {
    public:
     static EncoderInfo encoderInfo;
 
-    explicit Av1Encoder(int formatIndex);
+    explicit H265VaapiEncoder(int formatIndex);
 
     static StatusCode RegisterCodecs(HostListRef* list);
     static StatusCode GetEncoderSettings(HostPropertyCollectionRef* values, HostListRef* settingsList);
