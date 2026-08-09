@@ -4,11 +4,14 @@
 
 #include "av1_nvenc_encoder.h"
 #include "av1_vaapi_encoder.h"
+#include "av1_vulkan_encoder.h"
 #include "ffmpeg_encoder.h"
 #include "h264_nvenc_encoder.h"
 #include "h264_vaapi_encoder.h"
+#include "h264_vulkan_encoder.h"
 #include "h265_nvenc_encoder.h"
 #include "h265_vaapi_encoder.h"
+#include "h265_vulkan_encoder.h"
 #include "svt_av1_encoder.h"
 #include "uisettings_controller.h"
 #include "x264_encoder.h"
@@ -34,15 +37,21 @@ StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
         return errNone;
     }
 
-    if (memcmp(p_pUUID, X264Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - X264Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new X264Encoder(formatIndex);
-        return errNone;
-    }
-
     if (memcmp(p_pUUID, H264NvencEncoder::encoderInfo.UUID, 15) == 0) {
         const uint8_t formatIndex = p_pUUID[15] - H264NvencEncoder::encoderInfo.UUID[15];
         *p_ppObj = new H264NvencEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, H264VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - H264VulkanEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new H264VulkanEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, X264Encoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - X264Encoder::encoderInfo.UUID[15];
+        *p_ppObj = new X264Encoder(formatIndex);
         return errNone;
     }
 
@@ -52,15 +61,21 @@ StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
         return errNone;
     }
 
-    if (memcmp(p_pUUID, X265Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - X265Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new X265Encoder(formatIndex);
-        return errNone;
-    }
-
     if (memcmp(p_pUUID, H265NvencEncoder::encoderInfo.UUID, 15) == 0) {
         const uint8_t formatIndex = p_pUUID[15] - H265NvencEncoder::encoderInfo.UUID[15];
         *p_ppObj = new H265NvencEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, H265VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - H265VulkanEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new H265VulkanEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, X265Encoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - X265Encoder::encoderInfo.UUID[15];
+        *p_ppObj = new X265Encoder(formatIndex);
         return errNone;
     }
 
@@ -70,15 +85,21 @@ StatusCode g_HandleCreateObj(unsigned char* p_pUUID, ObjectRef* p_ppObj) {
         return errNone;
     }
 
-    if (memcmp(p_pUUID, SvtAv1Encoder::encoderInfo.UUID, 15) == 0) {
-        const uint8_t formatIndex = p_pUUID[15] - SvtAv1Encoder::encoderInfo.UUID[15];
-        *p_ppObj = new SvtAv1Encoder(formatIndex);
-        return errNone;
-    }
-
     if (memcmp(p_pUUID, Av1NvencEncoder::encoderInfo.UUID, 15) == 0) {
         const uint8_t formatIndex = p_pUUID[15] - Av1NvencEncoder::encoderInfo.UUID[15];
         *p_ppObj = new Av1NvencEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, Av1VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - Av1VulkanEncoder::encoderInfo.UUID[15];
+        *p_ppObj = new Av1VulkanEncoder(formatIndex);
+        return errNone;
+    }
+
+    if (memcmp(p_pUUID, SvtAv1Encoder::encoderInfo.UUID, 15) == 0) {
+        const uint8_t formatIndex = p_pUUID[15] - SvtAv1Encoder::encoderInfo.UUID[15];
+        *p_ppObj = new SvtAv1Encoder(formatIndex);
         return errNone;
     }
 
@@ -93,28 +114,37 @@ StatusCode g_ListCodecs(HostListRef* p_pList) {
     StatusCode err = H264VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = X264Encoder::RegisterCodecs(p_pList);
+    err = H264NvencEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = H264NvencEncoder::RegisterCodecs(p_pList);
+    err = H264VulkanEncoder::RegisterCodecs(p_pList);
+    if (err != errNone) return err;
+
+    err = X264Encoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     err = H265VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = X265Encoder::RegisterCodecs(p_pList);
+    err = H265NvencEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = H265NvencEncoder::RegisterCodecs(p_pList);
+    err = H265VulkanEncoder::RegisterCodecs(p_pList);
+    if (err != errNone) return err;
+
+    err = X265Encoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     err = Av1VaapiEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = SvtAv1Encoder::RegisterCodecs(p_pList);
+    err = Av1NvencEncoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
-    err = Av1NvencEncoder::RegisterCodecs(p_pList);
+    err = Av1VulkanEncoder::RegisterCodecs(p_pList);
+    if (err != errNone) return err;
+
+    err = SvtAv1Encoder::RegisterCodecs(p_pList);
     if (err != errNone) return err;
 
     return errNone;
@@ -128,36 +158,48 @@ StatusCode g_GetEncoderSettings(unsigned char* p_pUUID, HostPropertyCollectionRe
         return H264VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
-    if (memcmp(p_pUUID, X264Encoder::encoderInfo.UUID, 15) == 0) {
-        return X264Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
-    }
-
     if (memcmp(p_pUUID, H264NvencEncoder::encoderInfo.UUID, 15) == 0) {
         return H264NvencEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, H264VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        return H264VulkanEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, X264Encoder::encoderInfo.UUID, 15) == 0) {
+        return X264Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     if (memcmp(p_pUUID, H265VaapiEncoder::encoderInfo.UUID, 15) == 0) {
         return H265VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
-    if (memcmp(p_pUUID, X265Encoder::encoderInfo.UUID, 15) == 0) {
-        return X265Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
-    }
-
     if (memcmp(p_pUUID, H265NvencEncoder::encoderInfo.UUID, 15) == 0) {
         return H265NvencEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, H265VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        return H265VulkanEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, X265Encoder::encoderInfo.UUID, 15) == 0) {
+        return X265Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     if (memcmp(p_pUUID, Av1VaapiEncoder::encoderInfo.UUID, 15) == 0) {
         return Av1VaapiEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
-    if (memcmp(p_pUUID, SvtAv1Encoder::encoderInfo.UUID, 15) == 0) {
-        return SvtAv1Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
-    }
-
     if (memcmp(p_pUUID, Av1NvencEncoder::encoderInfo.UUID, 15) == 0) {
         return Av1NvencEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, Av1VulkanEncoder::encoderInfo.UUID, 15) == 0) {
+        return Av1VulkanEncoder::GetEncoderSettings(p_pValues, p_pSettingsList);
+    }
+
+    if (memcmp(p_pUUID, SvtAv1Encoder::encoderInfo.UUID, 15) == 0) {
+        return SvtAv1Encoder::GetEncoderSettings(p_pValues, p_pSettingsList);
     }
 
     return errNoCodec;

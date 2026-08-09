@@ -9,6 +9,7 @@ set(FFMPEG_DIR "${BASE_DIR}/ffmpeg")
 set(WRAPPER_DIR "${BASE_DIR}/wrapper")
 
 find_path(FFMPEG_INCLUDE_DIR libavcodec/avcodec.h HINTS "${FFMPEG_DIR}/include")
+find_path(VULKAN_INCLUDE_DIR vulkan/vulkan.h HINTS "${FFMPEG_DIR}/include")
 find_library(AVCODEC_LIBRARY avcodec HINTS "${FFMPEG_DIR}/lib")
 find_library(AVUTIL_LIBRARY avutil HINTS "${FFMPEG_DIR}/lib")
 find_library(VA_LIBRARY va)
@@ -51,11 +52,14 @@ include_directories(include wrapper ${FFMPEG_INCLUDE_DIR})
 set(SRCS
         av1_nvenc_encoder.cpp
         av1_vaapi_encoder.cpp
+        av1_vulkan_encoder.cpp
         ffmpeg_encoder.cpp
         h264_nvenc_encoder.cpp
         h264_vaapi_encoder.cpp
+        h264_vulkan_encoder.cpp
         h265_nvenc_encoder.cpp
         h265_vaapi_encoder.cpp
+        h265_vulkan_encoder.cpp
         hw_encoder_capabilities.cpp
         pixel_format_repacker.cpp
         plugin.cpp
@@ -68,11 +72,14 @@ set(SRCS
 set(HEADERS
         av1_nvenc_encoder.h
         av1_vaapi_encoder.h
+        av1_vulkan_encoder.h
         ffmpeg_encoder.h
         h264_nvenc_encoder.h
         h264_vaapi_encoder.h
+        h264_vulkan_encoder.h
         h265_nvenc_encoder.h
         h265_vaapi_encoder.h
+        h265_vulkan_encoder.h
         hw_encoder_capabilities.h
         pixel_format_repacker.h
         plugin.h
@@ -86,6 +93,10 @@ add_subdirectory(${WRAPPER_DIR})
 
 add_library(${PROJECT_NAME} SHARED ${SRCS} ${HEADERS})
 
+if (VULKAN_INCLUDE_DIR)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${VULKAN_INCLUDE_DIR})
+endif ()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE __STDC_CONSTANT_MACROS)
 
 if (NOT MSVC)
@@ -96,7 +107,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".dvcp")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE -static-libstdc++ -static-libgcc -Wl,--no-undefined -Wl,-Bsymbolic)
+    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--no-undefined -Wl,-Bsymbolic)
+
+    if (FFMPEG_IS_STATIC)
+        target_link_options(${PROJECT_NAME} PRIVATE
+                -static-libstdc++
+                -static-libgcc
+        )
+    endif ()
 else ()
     target_link_options(${PROJECT_NAME} PRIVATE -dynamiclib)
 endif ()
@@ -108,6 +126,33 @@ if (VA_LIBRARY)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${VA_LIBRARY})
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(WARNING "VA library not found. Some functionality of the VAAPI encoders will be limited.")
+endif ()
+
+if (VULKAN_INCLUDE_DIR)
+    include(CheckCXXSourceCompiles)
+
+    set(CMAKE_REQUIRED_INCLUDES "${VULKAN_INCLUDE_DIR}")
+
+    check_cxx_source_compiles("
+    #include <vulkan/vulkan.h>
+
+    int main() {
+        VkVideoProfileInfoKHR profile{};
+        VkVideoEncodeCapabilitiesKHR caps{};
+        return 0;
+    }
+    " HAVE_VULKAN_VIDEO)
+
+    unset(CMAKE_REQUIRED_INCLUDES)
+
+    if (HAVE_VULKAN_VIDEO)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_VULKAN_LIBRARY=1)
+    endif ()
+endif ()
+
+if ((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        AND NOT HAVE_VULKAN_VIDEO)
+    message(WARNING "Vulkan headers not found or are too old. Some functionality of the Vulkan encoders will be limited.")
 endif ()
 
 if (FFMPEG_IS_STATIC)

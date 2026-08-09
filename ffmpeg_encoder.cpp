@@ -130,8 +130,27 @@ StatusCode FFmpegEncoder::DoOpen(HostBufferRef* p_pBuff) {
     frameRateDen = commonProps.GetFrameRateDen();
     pixelFormat = format.pixelFormat;
     srcPixelFormat = format.srcPixelFormat;
-    useVaapi = encoderInfo.hwAcceleration == Vaapi;
     pixelFormatConverter = format.pixelFormatRepacker;
+    AVPixelFormat hwPixelFormat{};
+    AVHWDeviceType hwDeviceType{};
+    const char* hwDeviceName{};
+
+    switch (encoderInfo.hwAcceleration) {
+        case Vaapi:
+            hwPixelFormat = AV_PIX_FMT_VAAPI;
+            hwDeviceType = AV_HWDEVICE_TYPE_VAAPI;
+            hwDeviceName = "VAAPI";
+            useHwDevice = true;
+            break;
+        case Vulkan:
+            hwPixelFormat = AV_PIX_FMT_VULKAN;
+            hwDeviceType = AV_HWDEVICE_TYPE_VULKAN;
+            hwDeviceName = "Vulkan";
+            useHwDevice = true;
+            break;
+        default:
+            break;
+    }
 
     const AVCodec* codec = avcodec_find_encoder_by_name(encoderInfo.encoder);
     if (!codec) {
@@ -145,7 +164,7 @@ StatusCode FFmpegEncoder::DoOpen(HostBufferRef* p_pBuff) {
         return errFail;
     }
 
-    ctx->pix_fmt = useVaapi ? AV_PIX_FMT_VAAPI : pixelFormat;
+    ctx->pix_fmt = useHwDevice ? hwPixelFormat : pixelFormat;
     ctx->width = width;
     ctx->height = height;
     ctx->time_base = {static_cast<int>(frameRateDen), static_cast<int>(frameRateNum)};
@@ -159,11 +178,11 @@ StatusCode FFmpegEncoder::DoOpen(HostBufferRef* p_pBuff) {
 
     if (const StatusCode err = ApplyOptions(ctx, *settings, p_pBuff); err != errNone) return err;
 
-    if (useVaapi) {
-        int err = av_hwdevice_ctx_create(&hwDeviceCtx, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr, 0);
+    if (useHwDevice) {
+        int err = av_hwdevice_ctx_create(&hwDeviceCtx, hwDeviceType, nullptr, nullptr, 0);
 
         if (err < 0) {
-            g_Log(logLevelError, "FFmpeg Plugin :: Failed to create a VAAPI device. %s", av_err2str(err));
+            g_Log(logLevelError, "FFmpeg Plugin :: Failed to create a %s device. %s", hwDeviceName, av_err2str(err));
             return errUnsupported;
         }
 
@@ -171,18 +190,19 @@ StatusCode FFmpegEncoder::DoOpen(HostBufferRef* p_pBuff) {
         AVHWFramesContext* framesCtx = nullptr;
 
         if (!((hwFramesRef = av_hwframe_ctx_alloc(hwDeviceCtx)))) {
-            g_Log(logLevelError, "FFmpeg Plugin :: Failed to create VAAPI frame context");
+            g_Log(logLevelError, "FFmpeg Plugin :: Failed to create %s frame context", hwDeviceName);
             av_buffer_unref(&hwFramesRef);
             return errUnsupported;
         }
         framesCtx = reinterpret_cast<AVHWFramesContext*>(hwFramesRef->data);
-        framesCtx->format = AV_PIX_FMT_VAAPI;
+        framesCtx->format = hwPixelFormat;
         framesCtx->sw_format = pixelFormat;
         framesCtx->width = width;
         framesCtx->height = height;
-        framesCtx->initial_pool_size = 20;
+        framesCtx->initial_pool_size = encoderInfo.hwAcceleration == Vulkan ? 4 : 20;
         if ((err = av_hwframe_ctx_init(hwFramesRef)) < 0) {
-            g_Log(logLevelError, "FFmpeg Plugin :: Failed to initialize VAAPI frame context. %s", av_err2str(err));
+            g_Log(logLevelError, "FFmpeg Plugin :: Failed to initialize %s frame context. %s", hwDeviceName,
+                  av_err2str(err));
             av_buffer_unref(&hwFramesRef);
             return errUnsupported;
         }
@@ -258,9 +278,13 @@ StatusCode FFmpegEncoder::DoOpen(HostBufferRef* p_pBuff) {
 StatusCode FFmpegEncoder::ApplyOptions(AVCodecContext* ctx, UISettingsController& settings, HostBufferRef* p_pBuff) {
     switch (settings.GetQualityMode()) {
         case CQP:
-            if (useVaapi) {
+            if (encoderInfo.hwAcceleration == Vaapi) {
                 av_opt_set(ctx->priv_data, "rc_mode", "CQP", 0);
                 ctx->global_quality = encoderInfo.fourCC == 'av01' ? settings.GetQP() * 4 : settings.GetQP();
+            } else if (encoderInfo.hwAcceleration == Vulkan) {
+                av_opt_set(ctx->priv_data, "rc_mode", "cqp", 0);
+                av_opt_set_int(ctx->priv_data, "qp",
+                               encoderInfo.fourCC == 'av01' ? settings.GetQP() * 4 : settings.GetQP(), 0);
             } else {
                 av_opt_set_int(ctx->priv_data, encoderInfo.hwAcceleration == Nvenc ? "cq" : "qp", settings.GetQP(), 0);
             }
@@ -269,6 +293,9 @@ StatusCode FFmpegEncoder::ApplyOptions(AVCodecContext* ctx, UISettingsController
             av_opt_set_int(ctx->priv_data, "crf", settings.GetQP(), 0);
             break;
         case VBR:
+            if (encoderInfo.hwAcceleration == Vulkan) {
+                av_opt_set(ctx->priv_data, "rc_mode", "vbr", 0);
+            }
             ctx->bit_rate = settings.GetBitRate();
             break;
     }
@@ -281,6 +308,8 @@ StatusCode FFmpegEncoder::ApplyOptions(AVCodecContext* ctx, UISettingsController
         } else {
             ctx->compression_level = settings.GetPreset();
         }
+    } else if (encoderInfo.hwAcceleration == Vulkan) {
+        av_opt_set_int(ctx->priv_data, "quality", settings.GetPreset(), 0);
     } else {
         if (const auto preset = encoderInfo.presets.find(settings.GetPreset()); preset != encoderInfo.presets.end()) {
             av_opt_set(ctx->priv_data, "preset", preset->second.c_str(), 0);
@@ -350,7 +379,7 @@ StatusCode FFmpegEncoder::DoProcess(HostBufferRef* p_pBuff) {
             return errNoParam;
         }
 
-        if (useVaapi) {
+        if (useHwDevice) {
             AVFrame* hwFrame = av_frame_alloc();
             if (hwFrame == nullptr) return errAlloc;
 
@@ -450,6 +479,8 @@ bool FFmpegEncoder::IsEncoderSupported(const EncoderInfo& encoderInfo, const int
     AVBufferRef* hwFramesRef = nullptr;
     AVBufferRef* hwDeviceCtx = nullptr;
     AVHWFramesContext* framesCtx = nullptr;
+    AVPixelFormat hwPixelFormat{};
+    AVHWDeviceType hwDeviceType{};
 
     const AVPixelFormat pixelFormat = encoderInfo.formats[formatIndex].pixelFormat;
 
@@ -490,17 +521,31 @@ bool FFmpegEncoder::IsEncoderSupported(const EncoderInfo& encoderInfo, const int
     ctx = avcodec_alloc_context3(codec);
     if (!ctx) goto end;
 
-    ctx->pix_fmt = encoderInfo.hwAcceleration == Vaapi ? AV_PIX_FMT_VAAPI : pixelFormat;
-    ctx->time_base = {25, 1};
+    switch (encoderInfo.hwAcceleration) {
+        case Vaapi:
+            hwPixelFormat = AV_PIX_FMT_VAAPI;
+            hwDeviceType = AV_HWDEVICE_TYPE_VAAPI;
+            break;
+        case Vulkan:
+            hwPixelFormat = AV_PIX_FMT_VULKAN;
+            hwDeviceType = AV_HWDEVICE_TYPE_VULKAN;
+            break;
+        default:
+            break;
+    }
+
+    ctx->pix_fmt = hwPixelFormat ? hwPixelFormat : pixelFormat;
+    ctx->time_base = {1, 25};
     ctx->width = 1920;
     ctx->height = 1080;
 
-    if (encoderInfo.hwAcceleration == Vaapi) {
-        if (av_hwdevice_ctx_create(&hwDeviceCtx, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr, 0) < 0) goto end;
+    if (hwDeviceType) {
+        if (av_hwdevice_ctx_create(&hwDeviceCtx, hwDeviceType, nullptr, nullptr, 0) < 0) goto end;
+        if (encoderInfo.hwAcceleration == Vulkan && !IsVulkanLoaderSupported(hwDeviceCtx)) goto end;
         if (!((hwFramesRef = av_hwframe_ctx_alloc(hwDeviceCtx)))) goto end;
 
         framesCtx = reinterpret_cast<AVHWFramesContext*>(hwFramesRef->data);
-        framesCtx->format = AV_PIX_FMT_VAAPI;
+        framesCtx->format = hwPixelFormat;
         framesCtx->sw_format = pixelFormat;
         framesCtx->width = ctx->width;
         framesCtx->height = ctx->height;

@@ -3,13 +3,14 @@ name: Build FFmpeg Encoder Plugin with Static Linking
 on: workflow_dispatch
 
 env:
-  X265_VERSION: 4.2
-  SVT_AV1_VERSION: v4.1.0
-  FFMPEG_VERSION: n8.1.1
+  X265_VERSION: 4.3
+  SVT_AV1_VERSION: v4.2.0
+  FFMPEG_VERSION: n9.0
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: linux
@@ -108,7 +109,7 @@ jobs:
       - name: Build x265
         run: |
           cd ffmpeg_sources
-          git clone --depth 1 --branch ${{env.X265_VERSION}} https://bitbucket.org/multicoreware/x265_git.git x265
+          git clone --depth 1 --branch ${{env.X265_VERSION}} https://github.com/Multicorewareinc/x265.git x265
           cd x265/build/linux
           
           mkdir 10bit && cd 10bit
@@ -162,22 +163,35 @@ jobs:
         if: ${{ !startsWith(matrix.target, 'macos') }}
         run: |
           cd ffmpeg_sources
-          git clone --depth 1 --branch sdk/12.0 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+          git clone --depth 1 --branch sdk/12.0 https://github.com/FFmpeg/nv-codec-headers.git
           cd nv-codec-headers
           make
           make install PREFIX=$PREFIX
 
+      - name: Install Vulkan headers
+        if: matrix.target == 'linux' || matrix.target == 'windows'
+        run: |
+          cd ffmpeg_sources
+          git clone --depth 1 https://github.com/KhronosGroup/Vulkan-Headers.git
+      
+          cmake -S Vulkan-Headers \
+                -B Vulkan-Headers/build \
+                $EXTRA_CMAKE_ARGS
+      
+          cmake --build Vulkan-Headers/build -j $(nproc)
+          cmake --install Vulkan-Headers/build
+
       - name: Build FFmpeg
         run: |
           cd ffmpeg_sources
-          git clone --branch ${{env.FFMPEG_VERSION}} https://git.ffmpeg.org/ffmpeg.git
+          git clone --depth 1 --branch ${{env.FFMPEG_VERSION}} https://git.ffmpeg.org/ffmpeg.git
           cd ffmpeg
           
           EXTRA_ARGS=""
           if [ "${{ matrix.target }}" = "linux" ]; then
-            EXTRA_ARGS='--enable-nvenc --extra-libs="-lnuma"'
+            EXTRA_ARGS='--enable-nvenc --enable-vulkan --extra-libs="-lnuma"'
           elif [ "${{ matrix.target }}" = "windows" ]; then
-            EXTRA_ARGS="--enable-nvenc --target-os=mingw32 --cross-prefix=$HOST-"
+            EXTRA_ARGS="--enable-nvenc --enable-vulkan --target-os=mingw32 --cross-prefix=$HOST-"
           elif [[ "${{ matrix.target }}" == macos* ]]; then
             EXTRA_ARGS='--cc=clang --cxx=clang++ --ld=clang++ --disable-videotoolbox --disable-avfoundation --disable-coreimage --disable-xlib'
             export CFLAGS="-arch $ARCH"
@@ -185,7 +199,7 @@ jobs:
             export LDFLAGS="-arch $ARCH"
           fi
           
-          export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
           
           ./configure \
             $EXTRA_ARGS \
@@ -200,7 +214,10 @@ jobs:
             --enable-static \
             --enable-avcodec \
             --enable-gpl \
-            --enable-encoder=libx264,libx265,h264_vaapi,hevc_vaapi,av1_vaapi,libsvtav1,h264_nvenc,hevc_nvenc,av1_nvenc \
+            --enable-encoder=libx264,libx265,libsvtav1 \
+            --enable-encoder=h264_vaapi,hevc_vaapi,av1_vaapi \
+            --enable-encoder=h264_nvenc,hevc_nvenc,av1_nvenc \
+            --enable-encoder=h264_vulkan,hevc_vulkan,av1_vulkan \
             --enable-libx264 \
             --enable-libx265 \
             --enable-libsvtav1 \

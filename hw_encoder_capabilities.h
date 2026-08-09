@@ -4,3 +4,6 @@
 using namespace IOPlugin;
 
 void InitializeVaapiPresets(EncoderInfo& encoderInfo);
+void InitializeVulkanPresets(EncoderInfo& encoderInfo);
+
+bool IsVulkanLoaderSupported(const AVBufferRef* hwDeviceCtx);

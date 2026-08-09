@@ -41,7 +41,7 @@ class FFmpegEncoder : public IPluginCodecRef {
     uint32_t frameRateNum{};
     AVPixelFormat pixelFormat{};
     AVPixelFormat srcPixelFormat{};
-    bool useVaapi{};
+    bool useHwDevice{};
     PixelFormatRepacker* pixelFormatConverter{};
 
     AVCodecContext* ctx{};

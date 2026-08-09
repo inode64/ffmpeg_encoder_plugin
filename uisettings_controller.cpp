@@ -1,4 +1,4 @@
-#include "ffmpeg_encoder.h"
+#include "uisettings_controller.h"
 
 UISettingsController::UISettingsController(const EncoderInfo& encoderInfo) : encoderInfo(encoderInfo) {
     InitDefaults();
